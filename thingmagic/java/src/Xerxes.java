@@ -89,7 +89,7 @@ public class Xerxes {
                             }
                             else {
                                 try {
-                                    // read, decode and apply calibration
+                                    // read, decode and apply calibration one tag at a time
                                     short[] calibrationWords = Common.readMemBlockByEpc(reader, tag, Gen2.Bank.USER, 0x12, 4);
                                     TemperatureCalibration cal = new TemperatureCalibration(calibrationWords);
                                     if (cal.valid) {
