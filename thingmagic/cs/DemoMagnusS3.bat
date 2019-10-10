@@ -1,4 +1,5 @@
 echo off
+if not exist ".\build" mkdir .\build
 copy lib\MercuryAPI.dll build\MercuryAPI.dll
 copy lib\ZeroconfService.dll build\ZeroconfService.dll
 cls
