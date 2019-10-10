@@ -1,37 +1,49 @@
-//import java.util.EnumSet;
 import com.thingmagic.*;
 
 public class MagnusS3 {
 
+    /**
+     * Tag Settings
+     * 
+     * Read Attempts: number of tries to read all nearby sensor tags
+     * 
+     * On-Chip RSSI Filters: sensor tags with on-chip RSSI codes outside
+     * of these limits won't respond. 
+     */
     static int readAttempts = 10;
     static byte ocrssiMin = 3;
     static byte ocrssiMax = 31;
     
     public static void main(String[] args) {
         try {
+            // connect to and initialize reader
             Reader reader = Common.establishReader();
-            reader.paramSet(TMConstants.TMR_PARAM_GEN2_T4, 3000);  // microseconds
             
-            Gen2.Select tempsensorEnable = Common.createGen2Select(4, 5, Gen2.Bank.USER, 0xE0, 0, new byte[] {});
-            Gen2.Select ocrssiMinFilter = Common.createGen2Select(4, 0, Gen2.Bank.USER, 0xD0, 8, new byte[] {(byte)(0x20 | ocrssiMin)});
-            Gen2.Select ocrssiMaxFilter = Common.createGen2Select(4, 2, Gen2.Bank.USER, 0xD0, 8, new byte[] {ocrssiMax});
-            MultiFilter selects = new MultiFilter(new Gen2.Select[] {tempsensorEnable, ocrssiMinFilter, ocrssiMaxFilter});
+            // setup sensor activation commands and filters ensuring On-Chip RSSI Min Filter is applied
+            Gen2.Select tempsensorEnable = Common.createGen2Select(4, 5, Gen2.Bank.USER, 0xE0, 0, new byte[] { });
+            Gen2.Select ocrssiMinFilter = Common.createGen2Select(4, 0, Gen2.Bank.USER, 0xD0, 8, new byte[] { (byte)(0x20 | (ocrssiMin - 1)) });
+            Gen2.Select ocrssiMaxFilter = Common.createGen2Select(4, 2, Gen2.Bank.USER, 0xD0, 8, new byte[] { ocrssiMax });
+            MultiFilter selects = new MultiFilter(new Gen2.Select[] { tempsensorEnable, ocrssiMinFilter, ocrssiMaxFilter });
             
-//            EnumSet<Gen2.Bank> banks = EnumSet.of(Gen2.Bank.RESERVED, Gen2.Bank.GEN2BANKRESERVEDENABLED, Gen2.Bank.GEN2BANKTIDENABLED, Gen2.Bank.GEN2BANKUSERENABLED);
-//            Gen2.ReadData operation = new Gen2.ReadData(banks, 0, (byte)0);
+            // parameters to read all three sensor codes at once
             Gen2.ReadData operation = new Gen2.ReadData(Gen2.Bank.RESERVED, 0xC, (byte)3);
             
+            // create configuration
             SimpleReadPlan config = new SimpleReadPlan(Common.antennas, TagProtocol.GEN2, selects, operation, 1000);
             
             for (int i = 1; i <= readAttempts; i++) {
-                System.out.println("\nRead Attempt #" + i);
+                System.out.println("Read Attempt #" + i);
+                
+                // optimize settings for reading sensors
                 reader.paramSet(TMConstants.TMR_PARAM_READ_PLAN, config);
-                reader.paramSet(TMConstants.TMR_PARAM_GEN2_T4, 3000);
+                reader.paramSet(TMConstants.TMR_PARAM_GEN2_T4, 3000);  // CW delay in microseconds
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_SESSION, Common.session);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_Q, new Gen2.DynamicQ());
                 
+                // attempt to read sensor tags
                 TagReadData[] results = reader.read(Common.readTime);
                 
+                // optimize settings for reading an individual tag's memory
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_T4, 300);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_SESSION, Gen2.Session.S0);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_Q, new Gen2.StaticQ(0));
@@ -40,8 +52,7 @@ public class MagnusS3 {
                     for (TagReadData tag: results) {
                         String epc = tag.epcString();
                         System.out.println("* EPC: " + epc);
-                        byte[] dataBytes = tag.getData();
-                        short[] dataWords = Common.convertByteArrayToShortArray(dataBytes);
+                        short[] dataWords = Common.convertByteArrayToShortArray(tag.getData());
                         if (dataWords.length != 0) {
                             int moistureCode = dataWords[0];
                             int ocrssiCode = dataWords[1];
@@ -76,7 +87,7 @@ public class MagnusS3 {
                             }
                             else {
                                 try {
-                                    // reader.paramSet(TMConstants.TMR_PARAM_TAGOP_ANTENNA, tag.getAntenna());
+                                    // read, decode and apply calibration
                                     short[] calibrationWords = Common.readMemBlockByEpc(reader, tag, Gen2.Bank.USER, 8, 4);
                                     TemperatureCalibration cal = new TemperatureCalibration(calibrationWords);
                                     if (cal.valid) {
@@ -98,6 +109,7 @@ public class MagnusS3 {
                 else {
                     System.out.println("No tag(s) found");
                 }
+                System.out.println();
             }
         }
         catch (Exception e) {
@@ -119,14 +131,17 @@ public class MagnusS3 {
         public double offset;
 
         public TemperatureCalibration(short[] calWords) {
+            // convert register contents to variables
             decode(calWords[0], calWords[1], calWords[2], calWords[3]);
-
+            
+            // calculate CRC-16 over non-CRC bytes to compare with stored CRC-16 
             byte[] calBytes = Common.convertShortArrayToByteArray(new short[] {calWords[1], calWords[2], calWords[3]});
             int crcCalc = crc16(calBytes);
-
+            
+            // determine if calibration is valid
             if ((ver == 0) && (crc == crcCalc)) {
-                slope = (temp2 - temp1) / (double)(code2 - code1);
-                offset = temp1 - slope * (double)code1;
+                slope = .1 * (temp2 - temp1) / (double)(code2 - code1);
+                offset = .1 * (temp1 - 800) - (slope * (double)code1);
                 valid = true;
             }
             else {
@@ -135,14 +150,16 @@ public class MagnusS3 {
         }
 
         private void decode(short reg8, short reg9, short regA, short regB) {
-            crc = reg8 & 0xFFFF;
-            code1 = (reg9 & 0xFFF0) >> 4;
-            temp1 = .1 * (((reg9 & 0x000F) << 7) | ((regA & 0xFF80) >> 9)) - 80;
-            code2 = ((regA & 0x01FF) << 3) | ((regB & 0xE000) >> 13);
-            temp2 = .1 * ((regB & 0x1FFC) >> 2) - 80;
             ver = regB & 0x0003;
+            temp2 = (regB >> 2) & 0x07FF;
+            code2 = ((regA << 3) & 0x0FF8) | ((regB >> 13) & 0x0007);
+            temp1 = ((reg9 << 7) & 0x0780) | ((regA >> 9) & 0x007F);
+            code1 = (reg9 >> 4) & 0x0FFF;
+            crc = reg8 & 0xFFFF;
         }
-
+        
+        // EPC Gen2 CRC-16 Algorithm
+        // Poly = 0x1021; Initial Value = 0xFFFF; XOR Output;
         private int crc16(byte[] inputBytes) {
             int crcVal = 0xFFFF;
             for (byte inputByte: inputBytes) {
@@ -157,9 +174,9 @@ public class MagnusS3 {
                         crcVal = (crcVal << 1);
                     }
                 }
-                crcVal = crcVal & 0xffff;
+                crcVal = crcVal & 0xFFFF;
             }
-            crcVal = (crcVal ^ 0xffff);
+            crcVal = (crcVal ^ 0xFFFF);
             return crcVal;
         }
     }

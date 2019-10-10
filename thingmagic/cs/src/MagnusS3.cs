@@ -5,6 +5,14 @@ namespace AxzonDemo
 {
     class MagnusS3
     {
+        /**
+         * Tag Settings
+         * 
+         * Read Attempts: number of tries to read all nearby sensor tags
+         * 
+         * On-Chip RSSI Filters: sensor tags with on-chip RSSI codes outside
+         * of these limits won't respond. 
+         */
         static int readAttempts = 10;
         static byte ocrssiMin = 3;
         static byte ocrssiMax = 31;
@@ -13,33 +21,37 @@ namespace AxzonDemo
         {
             try
             {
+                // connect to and initialize reader
                 Reader reader = Common.EstablishReader();
-                reader.ParamSet("/reader/gen2/t4", (UInt32)3000);
 
+                // setup sensor activation commands and filters ensuring On-Chip RSSI Min Filter is applied
                 Gen2.Select tempsensorEnable = Common.CreateGen2Select(4, 5, Gen2.Bank.USER, 0xE0, 0, new byte[] { });
-                Gen2.Select ocrssiMinFilter = Common.CreateGen2Select(4, 0, Gen2.Bank.USER, 0xD0, 8, new byte[] { (byte)(0x20 | ocrssiMin) });
+                Gen2.Select ocrssiMinFilter = Common.CreateGen2Select(4, 0, Gen2.Bank.USER, 0xD0, 8, new byte[] { (byte)(0x20 | ocrssiMin - 1) });
                 Gen2.Select ocrssiMaxFilter = Common.CreateGen2Select(4, 2, Gen2.Bank.USER, 0xD0, 8, new byte[] { ocrssiMax });
                 MultiFilter selects = new MultiFilter(new Gen2.Select[] { tempsensorEnable, ocrssiMinFilter, ocrssiMaxFilter });
 
+                // parameters to read all three sensor codes at once
                 Gen2.ReadData operation = new Gen2.ReadData(Gen2.Bank.RESERVED, 0xC, (byte)3);
 
+                // create configuration
                 SimpleReadPlan config = new SimpleReadPlan(Common.antennas, TagProtocol.GEN2, selects, operation, 1000);
 
                 for (int i = 1; i <= readAttempts; i++)
                 {
                     Console.WriteLine("\nRead Attempt #" + i);
+
+                    // optimize settings for reading sensors
                     reader.ParamSet("/reader/read/plan", config);
                     reader.ParamSet("/reader/gen2/t4", (UInt32)3000);
                     reader.ParamSet("/reader/gen2/session", Common.session);
                     reader.ParamSet("/reader/gen2/q", new Gen2.DynamicQ());
-                    reader.ParamSet("/reader/gen2/sendSelect", true);
 
+                    // attempt to read sensor tags
                     TagReadData[] results = reader.Read(Common.readTime);
 
                     reader.ParamSet("/reader/gen2/t4", (UInt32)300);
                     reader.ParamSet("/reader/gen2/session", Gen2.Session.S0);
                     reader.ParamSet("/reader/gen2/q", new Gen2.StaticQ(0));
-                    reader.ParamSet("/reader/gen2/sendSelect", false);
 
                     if (results.Length != 0)
                     {
@@ -132,24 +144,27 @@ namespace AxzonDemo
             public bool valid = false;
             public int crc;
             public int code1;
-            public int temp1;
+            public double temp1;
             public int code2;
-            public int temp2;
+            public double temp2;
             public int ver;
             public double slope;
             public double offset;
 
             public TemperatureCalibration(short[] calWords)
             {
+                // convert register contents to variables
                 Decode(calWords[0], calWords[1], calWords[2], calWords[3]);
 
+                // calculate CRC-16 over non-CRC bytes to compare with stored CRC-16 
                 byte[] calBytes = Common.ConvertShortArrayToByteArray(new short[] { calWords[1], calWords[2], calWords[3] });
                 int crcCalc = Crc16(calBytes);
 
+                // determine if calibration is valid
                 if ((ver == 0) && (crc == crcCalc))
                 {
-                    slope = .1 * (((double)temp2 - (double)temp1) / ((double)code2 - (double)code1));
-                    offset = .1 * ((double)temp1 - 800) - slope * (double)code1;
+                    slope = (temp2 - temp1) / (double)(code2 - code1);
+                    offset = temp1 - slope * (double)code1;
                     valid = true;
                 }
                 else
@@ -162,12 +177,14 @@ namespace AxzonDemo
             {
                 crc = reg8 & 0xFFFF;
                 code1 = (reg9 & 0xFFF0) >> 4;
-                temp1 = ((reg9 & 0x000F) << 7) | ((regA & 0xFF80) >> 9);
+                temp1 = .1 * (((reg9 & 0x000F) << 7) | ((regA & 0xFF80) >> 9)) - 80;
                 code2 = ((regA & 0x01FF) << 3) | ((regB & 0xE000) >> 13);
-                temp2 = (regB & 0x1FFC) >> 2;
+                temp2 = .1 * ((regB & 0x1FFC) >> 2) - 80;
                 ver = regB & 0x0003;
             }
 
+            // EPC Gen2 CRC-16 Algorithm
+            // Poly = 0x1021; Initial Value = 0xFFFF; XOR Output;
             private int Crc16(byte[] inputBytes)
             {
                 int crcVal = 0xFFFF;

@@ -5,18 +5,42 @@ namespace AxzonDemo
 {
     public class Common
     {
-        // Application settings
-        static String uri = "tmr:///com30";
+        /**
+         * Application Settings
+         * These are common parameters which are intended to be customized
+         * based on how the reader and tags are deployed.
+         * 
+         * URI: specifies how to connect with the reader, for example:
+         * - Serial: "tmr:///COM1"
+         * - Network: "tmr://192.168.1.100"
+         * 
+         * Power: reader transmit power in dBm
+         * 
+         * Antennas: list of active antenna ports
+         * 
+         * Region: select which regulatory region with which to adhere
+         * - to skip configuring, set to 'null'
+         * 
+         * Session: specify which RFID Session Flag to use
+         * - S0: smaller tag populations
+         * - S1: larger tag populations (along with filtering by OCRSSI)
+         */
+        static String uri = "tmr:///COM30";
         static int power = 20;  // in dBm
         public static int[] antennas = { 1 };
-        static Reader.Region region = Reader.Region.NA;
+        static Reader.Region? region = Reader.Region.NA;
 
-        // Performance settings
+        /**
+         * Reader Performance Settings
+         * These parameters can be adjusted to improve performance 
+         * in specific scenarios.
+         */
         public static Gen2.Session session = Gen2.Session.S0;
         static Gen2.LinkFrequency blf = Gen2.LinkFrequency.LINK250KHZ;
         static Gen2.TagEncoding encoding = Gen2.TagEncoding.M4;
-        public static int readTime = 100 * antennas.Length;  // milliseconds
+        public static int readTime = 75 * antennas.Length;  // milliseconds
 
+        // connect to and initialize reader
         public static Reader EstablishReader()
         {
             Reader reader = null;
@@ -35,7 +59,10 @@ namespace AxzonDemo
             {
                 reader.ParamSet("/reader/radio/readPower", power * 100);
                 // reader.ParamSet("/reader/radio/writePower", power * 100);
-                reader.ParamSet("/reader/region/id", region);
+                if (region != null)
+                {
+                    reader.ParamSet("/reader/region/id", region);
+                }
                 reader.ParamSet("/reader/gen2/BLF", blf);
                 reader.ParamSet("/reader/gen2/tagEncoding", encoding);
                 reader.ParamSet("/reader/gen2/session", session);
@@ -43,7 +70,7 @@ namespace AxzonDemo
                 reader.ParamSet("/reader/gen2/tari", Gen2.Tari.TARI_25US);
                 reader.ParamSet("/reader/gen2/sendSelect", true);
                 reader.ParamSet("/reader/gen2/q", new Gen2.DynamicQ());
-                // reader.ParamSet("/reader/gen2/initQ", 6);
+                reader.ParamSet("/reader/gen2/initQ", new Gen2.InitQ());
                 // reader.ParamSet("/reader/commandTimeout", 100);
             }
             catch (Exception e)
@@ -55,6 +82,7 @@ namespace AxzonDemo
             return reader;
         }
 
+        // create an RFID Gen2 Select Command with custom parameters
         public static Gen2.Select CreateGen2Select(int target, int action, Gen2.Bank bank, int pointer, int length, byte[] mask)
         {
             Gen2.Select select = new Gen2.Select(false, bank, (uint)pointer, (ushort)length, mask);
@@ -110,17 +138,14 @@ namespace AxzonDemo
             return select;
         }
 
+        // read multiple registers from one tag singulated by its EPC
         public static short[] ReadMemBlockByEpc(Reader reader, TagReadData tag, Gen2.Bank bank, int address, int length, int attempts)
         {
-            // Filter by EPC
             Gen2.Select resetFilter = CreateGen2Select(4, 4, Gen2.Bank.TID, 0x00, 16, new byte[] { 0xE2, 0x82 });
             Gen2.Select epcFilter = CreateGen2Select(4, 0, Gen2.Bank.EPC, 0x20, tag.Epc.Length * 8, tag.Epc);
             MultiFilter selects = new MultiFilter(new Gen2.Select[] { resetFilter, epcFilter });
-            // Specify read parameters
             Gen2.ReadData operation = new Gen2.ReadData(bank, (uint)address, (byte)length);
-            // Apply settings
             SimpleReadPlan config = new SimpleReadPlan(new int[] { tag.Antenna }, TagProtocol.GEN2, selects, operation, 1000);
-
             short[] values = null;
             try
             {
@@ -157,18 +182,21 @@ namespace AxzonDemo
             return values;
         }
 
+        // read multiple registers from one tag singulated by its EPC
         public static short[] ReadMemBlockByEpc(Reader reader, TagReadData tag, Gen2.Bank bank, int address, int length)
         {
             short[] values = ReadMemBlockByEpc(reader, tag, bank, address, length, 3);
             return values;
         }
 
+        // read one register from one tag singulated by its EPC
         public static short ReadMemByEpc(Reader reader, TagReadData tag, Gen2.Bank bank, int address, int attempts)
         {
             short[] values = ReadMemBlockByEpc(reader, tag, bank, address, 1, attempts);
             return values[0];
         }
 
+        // read one register from one tag singulated by its EPC
         public static short ReadMemByEpc(Reader reader, TagReadData tag, Gen2.Bank bank, int address)
         {
             short value = ReadMemByEpc(reader, tag, bank, address, 3);
