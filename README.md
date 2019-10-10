@@ -1,13 +1,21 @@
 # Reader Sample Code
-Demonstrates how to operate various RAIN RFID readers to measure Axzon's sensor tags
+Demonstrates and provides source code on how to operate various RAIN RFID readers to measure Axzon's sensor tags
 
-## Java Usage Instructions
-Java must be intalled with the executable (java.exe) and compiler (javac.exe) available on the PATH environment variable
-Tested versions: Windows 10 with Java 8 181
+Script files are included to compile and run the sample code, printing the results to a command-line window. They rely on the PATH environment variable to locate the compiler/executable. The script files may be modified to reference the appropriate absolute path instead.
 
-## C# Usage Instructions (Windows Only)
-.NET Framework must be installed with the C# Compiler (csc.exe) available on the PATH environment variable
-Tested versions: Windows 10 with 32bit .NET Framework v3.5
 
-## C Usage Instructions
+### Java Usage Instructions
+Java must be installed with the executable (java.exe) and compiler (javac.exe) available on the PATH environment variable. For example: 
+- C:\Program Files (x86)\Java\jdk1.8.0_181\bin\java.exe
+- C:\Program Files (x86)\Java\jdk1.8.0_181\bin\javac.exe
+
+
+
+### C# Usage Instructions (Windows Only)
+.NET Framework must be installed with the C# Compiler (csc.exe) available on the PATH environment variable. For example: 
+- C:\Windows\Microsoft.NET\Framework\v3.5\csc.exe
+
+
+
+### C Usage Instructions
 TBD
