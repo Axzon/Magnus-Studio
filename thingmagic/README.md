@@ -1,4 +1,4 @@
-# ThingMagic
+# ThingMagic Sample Code
 
 ### Mercury API
 Version: 1.31.2.40
