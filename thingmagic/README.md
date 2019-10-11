@@ -1,9 +1,10 @@
 # ThingMagic Sample Code
 
 ## Limitations
-1) Can only target tags with SL asserted
-2) CW delay (T4 parameter) occurs after every Select command
-3) Maximum of 3x Select commands
+1) Calibration must be read separately
+2) Maximum of 3x Select commands
+3) Only targets tags with SL asserted
+4) CW delay (T4 parameter) occurs after every Select command
 
 ## Verified Versions
 #### Mercury API
