@@ -25,17 +25,17 @@ namespace AxzonDemo
          * - S0: smaller tag populations
          * - S1: larger tag populations (along with filtering by OCRSSI)
          */
-        static String uri = "tmr:///COM30";
+        static String uri = "tmr:///COM1";
         static int power = 20;  // in dBm
         public static int[] antennas = { 1 };
         static Reader.Region? region = Reader.Region.NA;
+        public static Gen2.Session session = Gen2.Session.S0;
 
         /**
          * Reader Performance Settings
          * These parameters can be adjusted to improve performance 
          * in specific scenarios.
          */
-        public static Gen2.Session session = Gen2.Session.S0;
         static Gen2.LinkFrequency blf = Gen2.LinkFrequency.LINK250KHZ;
         static Gen2.TagEncoding encoding = Gen2.TagEncoding.M4;
         public static int readTime = 75 * antennas.Length;  // milliseconds
