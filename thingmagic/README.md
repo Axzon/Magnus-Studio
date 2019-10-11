@@ -1,7 +1,7 @@
 # ThingMagic Sample Code
 
 ## Limitations
-1) Can only target tags with SL = asserted
+1) Can only target tags with SL asserted
 2) CW delay (T4 parameter) occurs after every Select command
 3) Maximum of 3x Select commands
 
