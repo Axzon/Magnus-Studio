@@ -9,7 +9,7 @@ Demonstrates and provides source code on how to operate various RAIN RFID reader
 5) Run appropriate 'Demo' script
 
 ## Requirements
-Script files are included to compile and run the sample code, printing the results to a command-line window. They rely on the PATH environment variable to locate the compiler/executable. The script files may be modified to reference the appropriate absolute path instead.
+Script files are included to compile and run the sample code, printing the results to a command-line window. They rely on the PATH environment variable to locate the compiler/executable. The script files may be modified to reference the absolute path instead.
 ### Java
 Java must be installed with the executable (java.exe) and compiler (javac.exe) available on the PATH environment variable. For example: 
 - C:\Program Files (x86)\Java\jdk1.8.0_181\bin\java.exe
