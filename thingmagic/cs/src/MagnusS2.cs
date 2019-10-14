@@ -7,11 +7,11 @@ namespace AxzonDemo
     {
         /**
          * Tag Settings
-         * 
+         *
          * Read Attempts: number of tries to read all nearby sensor tags
-         * 
+         *
          * On-Chip RSSI Filters: sensor tags with on-chip RSSI codes outside
-         * of these limits won't respond. 
+         * of these limits won't respond.
          *
          * Mode: select which sensor to use
          * - Moisture: 'true'
@@ -34,7 +34,7 @@ namespace AxzonDemo
                 Gen2.Select ocrssiMinFilter = Common.CreateGen2Select(4, 0, Gen2.Bank.USER, 0xA0, 8, new byte[] { (byte)(0x20 | ocrssiMin - 1) });
                 Gen2.Select ocrssiMaxFilter = Common.CreateGen2Select(4, 2, Gen2.Bank.USER, 0xA0, 8, new byte[] { ocrssiMax });
                 MultiFilter selects = new MultiFilter(new Gen2.Select[] { tempsensorEnable, ocrssiMinFilter, ocrssiMaxFilter });
-                
+
                 Gen2.ReadData operation;
                 if (moistureMode)
                 {

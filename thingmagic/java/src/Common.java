@@ -1,23 +1,23 @@
 import com.thingmagic.*;
 
 public class Common{
-    
+
     /**
      * Application Settings
      * These are common parameters which are intended to be customized
      * based on how the reader and tags are deployed.
-     * 
+     *
      * URI: specifies how to connect with the reader, for example:
      * - Serial: "tmr:///COM1"
      * - Network: "tmr://192.168.1.100"
-     * 
+     *
      * Power: reader transmit power in dBm
-     * 
+     *
      * Antennas: list of active antenna ports
-     * 
+     *
      * Region: select which regulatory region with which to adhere
      * - to skip configuring, set to 'null'
-     * 
+     *
      * Session: specify which RFID Session Flag to use
      * - S0: smaller tag populations
      * - S1: larger tag populations (along with filtering by OCRSSI)
@@ -27,16 +27,16 @@ public class Common{
     public static int[] antennas = {1};
     static Reader.Region region = Reader.Region.NA;
     public static Gen2.Session session = Gen2.Session.S0;
-    
+
     /**
      * Reader Performance Settings
-     * These parameters can be adjusted to improve performance 
+     * These parameters can be adjusted to improve performance
      * in specific scenarios.
      */
     static Gen2.LinkFrequency blf = Gen2.LinkFrequency.LINK250KHZ;
     static Gen2.TagEncoding encoding = Gen2.TagEncoding.M4;
     public static long readTime = 75 * antennas.length;  // milliseconds
-    
+
     // connect to and initialize reader
     public static Reader establishReader() {
         Reader reader = null;
@@ -72,7 +72,7 @@ public class Common{
         }
         return reader;
     }
-    
+
     // create an RFID Gen2 Select Command with custom parameters
     public static Gen2.Select createGen2Select(int target, int action, Gen2.Bank bank, int pointer, int length, byte[] mask) {
         Gen2.Select select = new Gen2.Select(false, bank, pointer, length, mask);
@@ -125,7 +125,7 @@ public class Common{
         }
         return select;
     }
-    
+
     // read multiple registers from one tag singulated by its EPC
     public static short[] readMemBlockByEpc(Reader reader, TagReadData tag, Gen2.Bank bank, int address, int length, int attempts){
         byte[] epcBytes = tag.getTag().epcBytes();
@@ -160,25 +160,25 @@ public class Common{
         }
         return values;
     }
-    
+
     // read multiple registers from one tag singulated by its EPC
     public static short[] readMemBlockByEpc(Reader reader, TagReadData tag, Gen2.Bank bank, int address, int length){
         short[] values = readMemBlockByEpc(reader, tag, bank, address, length, 3);
         return values;
     }
-    
+
     // read one register from one tag singulated by its EPC
     public static short readMemByEpc(Reader reader, TagReadData tag, Gen2.Bank bank, int address, int attempts){
         short[] values = readMemBlockByEpc(reader, tag, bank, address, 1, attempts);
         return values[0];
     }
-    
+
     // read one register from one tag singulated by its EPC
     public static short readMemByEpc(Reader reader, TagReadData tag, Gen2.Bank bank, int address){
         short value = readMemByEpc(reader, tag, bank, address, 3);
         return value;
     }
-    
+
     public static byte[] convertShortArrayToByteArray(short[] shortArray) {
         byte[] byteArray = new byte[shortArray.length * 2];
         for (int i = 0; i < shortArray.length; i++) {
@@ -187,7 +187,7 @@ public class Common{
         }
         return byteArray;
     }
-    
+
     public static short[] convertByteArrayToShortArray(byte[] byteArray) {
         short[] shortArray = new short[byteArray.length / 2];
         for (int i = 0; i < shortArray.length; i++) {

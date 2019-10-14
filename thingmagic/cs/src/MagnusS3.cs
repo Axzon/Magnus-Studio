@@ -7,11 +7,11 @@ namespace AxzonDemo
     {
         /**
          * Tag Settings
-         * 
+         *
          * Read Attempts: number of tries to read all nearby sensor tags
-         * 
+         *
          * On-Chip RSSI Filters: sensor tags with on-chip RSSI codes outside
-         * of these limits won't respond. 
+         * of these limits won't respond.
          */
         static int readAttempts = 10;
         static byte ocrssiMin = 3;
@@ -156,7 +156,7 @@ namespace AxzonDemo
                 // convert register contents to variables
                 Decode(calWords[0], calWords[1], calWords[2], calWords[3]);
 
-                // calculate CRC-16 over non-CRC bytes to compare with stored CRC-16 
+                // calculate CRC-16 over non-CRC bytes to compare with stored CRC-16
                 byte[] calBytes = Common.ConvertShortArrayToByteArray(new short[] { calWords[1], calWords[2], calWords[3] });
                 int crcCalc = Crc16(calBytes);
 

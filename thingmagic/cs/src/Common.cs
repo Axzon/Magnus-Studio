@@ -9,18 +9,18 @@ namespace AxzonDemo
          * Application Settings
          * These are common parameters which are intended to be customized
          * based on how the reader and tags are deployed.
-         * 
+         *
          * URI: specifies how to connect with the reader, for example:
          * - Serial: "tmr:///COM1"
          * - Network: "tmr://192.168.1.100"
-         * 
+         *
          * Power: reader transmit power in dBm
-         * 
+         *
          * Antennas: list of active antenna ports
-         * 
+         *
          * Region: select which regulatory region with which to adhere
          * - to skip configuring, set to 'null'
-         * 
+         *
          * Session: specify which RFID Session Flag to use
          * - S0: smaller tag populations
          * - S1: larger tag populations (along with filtering by OCRSSI)
@@ -33,7 +33,7 @@ namespace AxzonDemo
 
         /**
          * Reader Performance Settings
-         * These parameters can be adjusted to improve performance 
+         * These parameters can be adjusted to improve performance
          * in specific scenarios.
          */
         static Gen2.LinkFrequency blf = Gen2.LinkFrequency.LINK250KHZ;

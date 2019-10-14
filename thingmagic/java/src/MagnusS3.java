@@ -4,50 +4,50 @@ public class MagnusS3 {
 
     /**
      * Tag Settings
-     * 
+     *
      * Read Attempts: number of tries to read all nearby sensor tags
-     * 
+     *
      * On-Chip RSSI Filters: sensor tags with on-chip RSSI codes outside
-     * of these limits won't respond. 
+     * of these limits won't respond.
      */
     static int readAttempts = 10;
     static byte ocrssiMin = 3;
     static byte ocrssiMax = 31;
-    
+
     public static void main(String[] args) {
         try {
             // connect to and initialize reader
             Reader reader = Common.establishReader();
-            
+
             // setup sensor activation commands and filters ensuring On-Chip RSSI Min Filter is applied
             Gen2.Select tempsensorEnable = Common.createGen2Select(4, 5, Gen2.Bank.USER, 0xE0, 0, new byte[] { });
             Gen2.Select ocrssiMinFilter = Common.createGen2Select(4, 0, Gen2.Bank.USER, 0xD0, 8, new byte[] { (byte)(0x20 | (ocrssiMin - 1)) });
             Gen2.Select ocrssiMaxFilter = Common.createGen2Select(4, 2, Gen2.Bank.USER, 0xD0, 8, new byte[] { ocrssiMax });
             MultiFilter selects = new MultiFilter(new Gen2.Select[] { tempsensorEnable, ocrssiMinFilter, ocrssiMaxFilter });
-            
+
             // parameters to read all three sensor codes at once
             Gen2.ReadData operation = new Gen2.ReadData(Gen2.Bank.RESERVED, 0xC, (byte)3);
-            
+
             // create configuration
             SimpleReadPlan config = new SimpleReadPlan(Common.antennas, TagProtocol.GEN2, selects, operation, 1000);
-            
+
             for (int i = 1; i <= readAttempts; i++) {
                 System.out.println("Read Attempt #" + i);
-                
+
                 // optimize settings for reading sensors
                 reader.paramSet(TMConstants.TMR_PARAM_READ_PLAN, config);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_T4, 3000);  // CW delay in microseconds
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_SESSION, Common.session);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_Q, new Gen2.DynamicQ());
-                
+
                 // attempt to read sensor tags
                 TagReadData[] results = reader.read(Common.readTime);
-                
+
                 // optimize settings for reading an individual tag's memory
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_T4, 300);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_SESSION, Gen2.Session.S0);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_Q, new Gen2.StaticQ(0));
-                
+
                 if (results.length != 0) {
                     for (TagReadData tag: results) {
                         String epc = tag.epcString();
@@ -57,10 +57,10 @@ public class MagnusS3 {
                             int moistureCode = dataWords[0];
                             int ocrssiCode = dataWords[1];
                             int temperatureCode = dataWords[2];
-                            
+
                             // On-Chip RSSI Sensor
                             System.out.println("  - On-Chip RSSI: " + ocrssiCode);
-                            
+
                             // Moisture Sensor
                             String moistureStatus;
                             if (ocrssiCode < 5) {
@@ -73,7 +73,7 @@ public class MagnusS3 {
                                 moistureStatus = moistureCode + " at " + tag.getFrequency() + " kHz";
                             }
                             System.out.println("  - Moisture: " + moistureStatus);
-                            
+
                             // Temperature Sensor
                             String temperatureStatus;
                             if (ocrssiCode < 5) {
@@ -118,7 +118,7 @@ public class MagnusS3 {
             System.exit(-1);
         }
     }
-    
+
     static class TemperatureCalibration {
         public boolean valid = false;
         public int crc;
@@ -133,11 +133,11 @@ public class MagnusS3 {
         public TemperatureCalibration(short[] calWords) {
             // convert register contents to variables
             decode(calWords[0], calWords[1], calWords[2], calWords[3]);
-            
-            // calculate CRC-16 over non-CRC bytes to compare with stored CRC-16 
+
+            // calculate CRC-16 over non-CRC bytes to compare with stored CRC-16
             byte[] calBytes = Common.convertShortArrayToByteArray(new short[] {calWords[1], calWords[2], calWords[3]});
             int crcCalc = crc16(calBytes);
-            
+
             // determine if calibration is valid
             if ((ver == 0) && (crc == crcCalc)) {
                 slope = .1 * (temp2 - temp1) / (double)(code2 - code1);
@@ -157,7 +157,7 @@ public class MagnusS3 {
             code1 = (reg9 >> 4) & 0x0FFF;
             crc = reg8 & 0xFFFF;
         }
-        
+
         // EPC Gen2 CRC-16 Algorithm
         // Poly = 0x1021; Initial Value = 0xFFFF; XOR Output;
         private int crc16(byte[] inputBytes) {

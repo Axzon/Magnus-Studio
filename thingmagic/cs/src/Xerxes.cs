@@ -7,11 +7,11 @@ namespace AxzonDemo
     {
         /**
          * Tag Settings
-         * 
+         *
          * Read Attempts: number of tries to read all nearby sensor tags
-         * 
+         *
          * On-Chip RSSI Filters: sensor tags with on-chip RSSI codes outside
-         * of these limits won't respond. 
+         * of these limits won't respond.
          */
         static int readAttempts = 10;
         static byte ocrssiMin = 3;
@@ -192,7 +192,7 @@ namespace AxzonDemo
             {
                 // convert register contents to variables
                 Decode(calWords[0], calWords[1], calWords[2], calWords[3]);
-            
+
                 // calculate parity
                 int par1Bit2 = (CountBits(fmt) + CountBits(temp1)) % 2;
                 int par1Bit1 = CountBits(code1) % 2;

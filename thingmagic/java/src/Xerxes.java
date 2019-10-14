@@ -4,50 +4,50 @@ public class Xerxes {
 
     /**
      * Tag Settings
-     * 
+     *
      * Read Attempts: number of tries to read all nearby sensor tags
-     * 
+     *
      * On-Chip RSSI Filters: sensor tags with on-chip RSSI codes outside
-     * of these limits won't respond. 
+     * of these limits won't respond.
      */
     static int readAttempts = 10;
     static byte ocrssiMin = 3;
     static byte ocrssiMax = 31;
-    
+
     public static void main(String[] args) {
         try {
             // connect to and initialize reader
             Reader reader = Common.establishReader();
-            
+
             // setup sensor activation commands and filters ensuring On-Chip RSSI Min Filter is applied
             Gen2.Select globalEnable = Common.createGen2Select(4, 2, Gen2.Bank.USER, 0x3B0, 8, new byte[] { (byte)0x00 });
             Gen2.Select ocrssiMinFilter = Common.createGen2Select(4, 0, Gen2.Bank.USER, 0x3D0, 8, new byte[] { (byte)(0x20 | (ocrssiMin - 1)) });
             Gen2.Select ocrssiMaxFilter = Common.createGen2Select(4, 2, Gen2.Bank.USER, 0x3D0, 8, new byte[] { ocrssiMax });
             MultiFilter selects = new MultiFilter(new Gen2.Select[] { globalEnable, ocrssiMinFilter, ocrssiMaxFilter });
-            
+
             // parameters to read all three sensor codes at once
             Gen2.ReadData operation = new Gen2.ReadData(Gen2.Bank.RESERVED, 0xA, (byte)5);
-            
+
             // create configuration
             SimpleReadPlan config = new SimpleReadPlan(Common.antennas, TagProtocol.GEN2, selects, operation, 1000);
-            
+
             for (int i = 1; i <= readAttempts; i++) {
                 System.out.println("Read Attempt #" + i);
-                
+
                 // optimize settings for reading sensors
                 reader.paramSet(TMConstants.TMR_PARAM_READ_PLAN, config);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_T4, 9000);  // CW delay in microseconds
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_SESSION, Common.session);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_Q, new Gen2.DynamicQ());
-                
+
                 // attempt to read sensor tags
                 TagReadData[] results = reader.read(Common.readTime);
-                
+
                 // optimize settings for reading an individual tag's memory
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_T4, 300);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_SESSION, Gen2.Session.S0);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_Q, new Gen2.StaticQ(0));
-                
+
                 if (results.length != 0) {
                     for (TagReadData tag: results) {
                         String epc = tag.epcString();
@@ -59,10 +59,10 @@ public class Xerxes {
                             int moistureCode = dataWords[2];
                             int ocrssiCode = dataWords[3];
                             int temperatureCode = dataWords[4];
-                            
+
                             // On-Chip RSSI Sensor
                             System.out.println("  - On-Chip RSSI: " + ocrssiCode);
-                            
+
                             // Moisture Sensor
                             String moistureStatus;
                             if (ocrssiCode < 5) {
@@ -75,7 +75,7 @@ public class Xerxes {
                                 moistureStatus = moistureCode + " at " + tag.getFrequency() + " kHz";
                             }
                             System.out.println("  - Moisture: " + moistureStatus);
-                            
+
                             // Temperature Sensor
                             String temperatureStatus;
                             if (ocrssiCode < 5) {
@@ -105,7 +105,7 @@ public class Xerxes {
                                 }
                             }
                             System.out.println("  - Temperature: " + temperatureStatus);
-                            
+
                             // Backport 1 Sensor
                             String backport1Status;
                             if (ocrssiCode < 5) {
@@ -118,7 +118,7 @@ public class Xerxes {
                                 backport1Status = backport1Code + "";
                             }
                             System.out.println("  - Backport 1: " + backport1Status);
-                            
+
                             // Backport 2 Sensor
                             String backport2Status;
                             if (ocrssiCode < 5) {
@@ -146,7 +146,7 @@ public class Xerxes {
             System.exit(-1);
         }
     }
-    
+
     static class TemperatureCalibration {
         public boolean valid = false;
         public int fmt;
@@ -163,7 +163,7 @@ public class Xerxes {
         public TemperatureCalibration(short[] calWords) {
             // convert register contents to variables
             decode(calWords[0], calWords[1], calWords[2], calWords[3]);
-            
+
             // calculate parity
             int par1Bit2 = (Integer.bitCount(fmt) + Integer.bitCount(temp1)) % 2;
             int par1Bit1 = Integer.bitCount(code1) % 2;
@@ -171,7 +171,7 @@ public class Xerxes {
             int par2Bit2 = (Integer.bitCount(rfu) + Integer.bitCount(temp2)) % 2;
             int par2Bit1 = Integer.bitCount(code2) % 2;
             int par2Calc = (par2Bit2 << 1) | par2Bit1;
-            
+
             // determine if calibration is valid
             if ((fmt == 0) && (par1 == par1Calc) && (par2 == par2Calc)) {
                 slope = .1 * (temp2 - temp1) / ((double)(code2 - code1) * 0.0625);
