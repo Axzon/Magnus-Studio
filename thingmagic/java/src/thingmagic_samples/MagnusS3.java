@@ -1,3 +1,5 @@
+package thingmagic_samples;
+
 import com.thingmagic.*;
 
 public class MagnusS3 {
@@ -48,66 +50,65 @@ public class MagnusS3 {
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_SESSION, Gen2.Session.S0);
                 reader.paramSet(TMConstants.TMR_PARAM_GEN2_Q, new Gen2.StaticQ(0));
 
-                if (results.length != 0) {
-                    for (TagReadData tag: results) {
-                        String epc = tag.epcString();
-                        System.out.println("* EPC: " + epc);
-                        short[] dataWords = Common.convertByteArrayToShortArray(tag.getData());
-                        if (dataWords.length != 0) {
-                            int moistureCode = dataWords[0];
-                            int ocrssiCode = dataWords[1];
-                            int temperatureCode = dataWords[2];
+                if (results.length == 0) {
+                    System.out.println("No tag(s) found");
+                }
+                for (TagReadData tag: results) {
+                    String epc = tag.epcString();
+                    System.out.println("* EPC: " + epc);
+                    short[] dataWords = Common.convertByteArrayToShortArray(tag.getData());
+                    if (dataWords.length == 0) {
+                        continue;
+                    }
+                    int moistureCode = dataWords[0];
+                    int ocrssiCode = dataWords[1];
+                    int temperatureCode = dataWords[2];
 
-                            // On-Chip RSSI Sensor
-                            System.out.println("  - On-Chip RSSI: " + ocrssiCode);
+                    // On-Chip RSSI Sensor
+                    System.out.println("  - On-Chip RSSI: " + ocrssiCode);
 
-                            // Moisture Sensor
-                            String moistureStatus;
-                            if (ocrssiCode < 5) {
-                                moistureStatus = "power too low";
-                            }
-                            else if (ocrssiCode > 21) {
-                                moistureStatus = "power too high";
+                    // Moisture Sensor
+                    String moistureStatus;
+                    if (ocrssiCode < 5) {
+                        moistureStatus = "power too low";
+                    }
+                    else if (ocrssiCode > 21) {
+                        moistureStatus = "power too high";
+                    }
+                    else {
+                        moistureStatus = moistureCode + " at " + tag.getFrequency() + " kHz";
+                    }
+                    System.out.println("  - Moisture: " + moistureStatus);
+
+                    // Temperature Sensor
+                    String temperatureStatus;
+                    if (ocrssiCode < 5) {
+                        temperatureStatus = "power too low";
+                    }
+                    else if (ocrssiCode > 18) {
+                        temperatureStatus = "power too high";
+                    }
+                    else if (temperatureCode < 1000 || 3500 < temperatureCode){
+                        temperatureStatus = "bad read";
+                    }
+                    else {
+                        try {
+                            // read, decode and apply calibration one tag at a time
+                            short[] calibrationWords = Common.readMemBlockByEpc(reader, tag, Gen2.Bank.USER, 8, 4);
+                            TemperatureCalibration cal = new TemperatureCalibration(calibrationWords);
+                            if (cal.valid) {
+                                double temperatureValue = cal.slope * temperatureCode + cal.offset;
+                                temperatureStatus = String.format("%.02f degC", temperatureValue);
                             }
                             else {
-                                moistureStatus = moistureCode + " at " + tag.getFrequency() + " kHz";
+                                temperatureStatus = "invalid calibration";
                             }
-                            System.out.println("  - Moisture: " + moistureStatus);
-
-                            // Temperature Sensor
-                            String temperatureStatus;
-                            if (ocrssiCode < 5) {
-                                temperatureStatus = "power too low";
-                            }
-                            else if (ocrssiCode > 18) {
-                                temperatureStatus = "power too high";
-                            }
-                            else if (temperatureCode < 1000 || 3500 < temperatureCode){
-                                temperatureStatus = "bad read";
-                            }
-                            else {
-                                try {
-                                    // read, decode and apply calibration one tag at a time
-                                    short[] calibrationWords = Common.readMemBlockByEpc(reader, tag, Gen2.Bank.USER, 8, 4);
-                                    TemperatureCalibration cal = new TemperatureCalibration(calibrationWords);
-                                    if (cal.valid) {
-                                        double temperatureValue = cal.slope * temperatureCode + cal.offset;
-                                        temperatureStatus = String.format("%.02f degC", temperatureValue);
-                                    }
-                                    else {
-                                        temperatureStatus = "invalid calibration";
-                                    }
-                                }
-                                catch (RuntimeException e) {
-                                    temperatureStatus = "failed to read calibration";
-                                }
-                            }
-                            System.out.println("  - Temperature: " + temperatureStatus);
+                        }
+                        catch (RuntimeException e) {
+                            temperatureStatus = "failed to read calibration";
                         }
                     }
-                }
-                else {
-                    System.out.println("No tag(s) found");
+                    System.out.println("  - Temperature: " + temperatureStatus);
                 }
                 System.out.println();
             }

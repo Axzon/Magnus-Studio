@@ -1,7 +1,7 @@
 using System;
 using ThingMagic;
 
-namespace AxzonDemo
+namespace ThingMagicSamples
 {
     public class Common
     {
@@ -25,7 +25,7 @@ namespace AxzonDemo
          * - S0: smaller tag populations
          * - S1: larger tag populations (along with filtering by OCRSSI)
          */
-        static String uri = "tmr:///COM1";
+        static String uri = "tmr:///COM19";
         static int power = 20;  // in dBm
         public static int[] antennas = { 1 };
         static Reader.Region? region = Reader.Region.NA;
@@ -165,6 +165,7 @@ namespace AxzonDemo
                             if (dataBytes.Length != 0)
                             {
                                 values = ConvertByteArrayToShortArray(dataBytes);
+                                break;
                             }
                         }
                     }

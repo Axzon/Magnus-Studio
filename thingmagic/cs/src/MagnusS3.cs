@@ -1,7 +1,7 @@
 ﻿using System;
 using ThingMagic;
 
-namespace AxzonDemo
+namespace ThingMagicSamples
 {
     class MagnusS3
     {

@@ -1,3 +1,5 @@
+package thingmagic_samples;
+
 import com.thingmagic.*;
 
 public class MagnusS2 {
@@ -50,25 +52,24 @@ public class MagnusS2 {
                 // attempt sensor tag reading
                 TagReadData[] results = reader.read(Common.readTime);
 
-                if (results.length != 0) {
-                    for (TagReadData tag: results) {
-                        String epc = tag.epcString();
-                        System.out.println("* EPC: " + epc);
-                        short[] dataWords = Common.convertByteArrayToShortArray(tag.getData());
-                        if (dataWords.length != 0) {
-                            if (moistureMode) {
-                                // Moisture Sensor
-                                System.out.println("  - Moisture: " + dataWords[0] + " at " + tag.getFrequency() + " kHz");
-                            }
-                            else {
-                                // On-Chip RSSI Sensor
-                                System.out.println("  - On-Chip RSSI: " + dataWords[0]);
-                            }
-                        }
-                    }
-                }
-                else {
+                if (results.length == 0) {
                     System.out.println("No tag(s) found");
+                }
+                for (TagReadData tag: results) {
+                    String epc = tag.epcString();
+                    System.out.println("* EPC: " + epc);
+                    short[] dataWords = Common.convertByteArrayToShortArray(tag.getData());
+                    if (dataWords.length == 0) {
+                        continue;
+                    }
+                    if (moistureMode) {
+                        // Moisture Sensor
+                        System.out.println("  - Moisture: " + dataWords[0] + " at " + tag.getFrequency() + " kHz");
+                    }
+                    else {
+                        // On-Chip RSSI Sensor
+                        System.out.println("  - On-Chip RSSI: " + dataWords[0]);
+                    }
                 }
                 System.out.println();
             }

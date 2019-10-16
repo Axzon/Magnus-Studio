@@ -1,3 +1,5 @@
+package thingmagic_samples;
+
 import com.thingmagic.*;
 
 public class Common{
@@ -22,7 +24,7 @@ public class Common{
      * - S0: smaller tag populations
      * - S1: larger tag populations (along with filtering by OCRSSI)
      */
-    static String uri = "tmr:///COM30";
+    static String uri = "tmr:///COM19";
     static int power = 20;
     public static int[] antennas = {1};
     static Reader.Region region = Reader.Region.NA;
@@ -145,6 +147,7 @@ public class Common{
                         byte[] dataBytes = readResult.getData();
                         if (dataBytes.length != 0) {
                             values = convertByteArrayToShortArray(dataBytes);
+                            break;
                         }
                     }
                 }

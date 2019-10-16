@@ -1,10 +1,8 @@
 echo off
 cls
-if not exist ".\build\classes" mkdir .\build\classes
-javac -cp .;./lib/* -d ./build/classes src/Common.java src/MagnusS2.java
+if not exist ".\build" mkdir .\build
+javac -cp .;./lib/* -d ./build src/thingmagic_samples/Common.java src/thingmagic_samples/MagnusS2.java
 if %ERRORLEVEL% EQU 0 (
-    cd src
-    java -cp .;../lib/*;../build/classes MagnusS2
-    cd ..
+    java -cp ./lib/*;./build thingmagic_samples.MagnusS2
 )
 pause
