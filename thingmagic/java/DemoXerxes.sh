@@ -1,9 +1,6 @@
 #!/bin/bash
-@echo off
 clear
-if [ -d "./build" ]; then
-    mkdir -p ./build
-fi
+mkdir -p ./build
 javac -cp .:./lib/* -d ./build src/thingmagic_samples/Common.java src/thingmagic_samples/Xerxes.java
 if [ $? -eq 0 ]; then
     java -cp ./lib/*:./build thingmagic_samples.Xerxes
