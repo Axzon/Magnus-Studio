@@ -1,9 +1,6 @@
 #!/bin/bash
-@echo off
 clear
-if [ -d "./build" ]; then
-    mkdir -p ./build
-fi
+mkdir -p ./build
 cp lib/MercuryAPI.dll build/MercuryAPI.dll
 cp lib/ZeroconfService.dll build/ZeroconfService.dll
 cp lib/LLRP.dll build/LLRP.dll
