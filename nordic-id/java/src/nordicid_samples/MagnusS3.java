@@ -20,11 +20,11 @@ public class MagnusS3 {
     /**
      * Shared class objects
      */
-    NurApi reader = null;
-    NurIRConfig config = null;
-    CustomExchangeParams params = null;
-    NurInventoryExtended invEx = null;
-    NurInventoryExtendedFilter[] filters = null;
+    NurApi reader;
+    NurIRConfig config;
+    CustomExchangeParams params;
+    NurInventoryExtended invEx;
+    NurInventoryExtendedFilter[] filters;
     HashMap<String, TemperatureCalibration> lookupCalibration = new HashMap<>();
 
     public static void main(String[] args) {

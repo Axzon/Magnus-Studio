@@ -23,14 +23,15 @@ public class MagnusS2 {
     /**
      * Shared class objects
      */
-    NurApi reader = new NurApi();
-    NurIRConfig config = null;
-    CustomExchangeParams params = null;
-    NurInventoryExtended invEx = null;
-    NurInventoryExtendedFilter[] filters = null;
+    NurApi reader;
+    NurIRConfig config;
+    CustomExchangeParams params;
+    NurInventoryExtended invEx;
+    NurInventoryExtendedFilter[] filters;
 
     public static void main(String[] args) {
         MagnusS2 m2 = new MagnusS2();
+        m2.reader = new NurApi();
         Common.connectReader(m2.reader);
         Common.initializeReader(m2.reader);
         try {

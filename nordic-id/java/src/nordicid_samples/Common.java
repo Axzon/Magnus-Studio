@@ -23,7 +23,7 @@ public class Common{
      * - S0: smaller tag populations
      * - S1: larger tag populations (along with filtering by OCRSSI)
      */
-    static String address = "COM1";
+    static String address = "172.16.1.117";
     static int power = 20;
     public static int[] antennas = { 1 };
     static int region = NurApi.REGIONID_FCC;
