@@ -17,30 +17,28 @@ namespace NordicIdSamples
         byte ocrssiMin = 3;
         byte ocrssiMax = 31;
 
-        NurApi reader = null;
-        NurApi.IrInformation config = new NurApi.IrInformation();
-        NurApi.CustomExchangeParams customExchange = new NurApi.CustomExchangeParams();
-        NurApi.InventoryExParams invEx = new NurApi.InventoryExParams();
-        NurApi.InventoryExFilter[] filters = new NurApi.InventoryExFilter[3];
+        NurApi reader;
+        NurApi.IrInformation config;
+        NurApi.CustomExchangeParams customExchange;
+        NurApi.InventoryExParams invEx;
+        NurApi.InventoryExFilter[] filters;
 
         static void Main(string[] args)
         {
             Console.WriteLine("TEST A");
             MagnusS3 m3 = new MagnusS3();
-            // m3.reader = new NurApi();
-            NurApi reader = new NurApi();
+            m3.reader = new NurApi();
             Console.WriteLine("TEST B");
-            return;
-            Common.connectReader(m3.reader);
-            Common.initializeReader(m3.reader);
+            Common.ConnectReader(m3.reader);
+            Common.InitializeReader(m3.reader);
             try
             {
-                m3.setupSensorReading();
+                m3.SetupSensorReading();
                 for (int i = 1; i <= m3.readAttempts; i++)
                 {
                     Console.WriteLine("Read Attempt #" + i);
-                    Common.configureAntennas(m3.reader, Common.antennas);
-                    NurApi.Tag[] results = m3.readSensors();
+                    Common.ConfigureAntennas(m3.reader, Common.antennas);
+                    NurApi.Tag[] results = m3.ReadSensors();
                     if (results.Length == 0)
                     {
                         Console.WriteLine("No tag(s) found");
@@ -58,7 +56,7 @@ namespace NordicIdSamples
                         {
                             // reading calibration may fail
                         }
-                        m3.printSensorResults(tagRead, cal);
+                        m3.PrintSensorResults(tagRead, cal);
                     }
                     Console.WriteLine();
                 }
@@ -72,17 +70,17 @@ namespace NordicIdSamples
             }
         }
 
-        void setupSensorReading()
+        void SetupSensorReading()
         {
             // Select command parameters
             NurApi.CustomExchangeParams temperatureEnable;
             NurApi.InventoryExFilter ocrssiMinFilter;
             NurApi.InventoryExFilter ocrssiMaxFilter;
             NurApi.InventoryExFilter TIDFilter;
-            temperatureEnable = Common.createCustomExchangeSelect(NurApi.SESSION_SL, 5, NurApi.BANK_USER, 0xE0, 0, new byte[] { });
-            ocrssiMinFilter = Common.createInventoryExtendedSelect(NurApi.SESSION_SL, 0, NurApi.BANK_USER, 0xD0, 8, new byte[] { (byte)(0x20 | (ocrssiMin - 1)) });
-            ocrssiMaxFilter = Common.createInventoryExtendedSelect(NurApi.SESSION_SL, 2, NurApi.BANK_USER, 0xD0, 8, new byte[] { ocrssiMax });
-            TIDFilter = Common.createInventoryExtendedSelect(NurApi.SESSION_SL, 2, NurApi.BANK_TID, 0x00, 28, new byte[] { (byte)0xE2, (byte)0x82, (byte)0x40, (byte)0x30 });
+            temperatureEnable = Common.CreateCustomExchangeSelect(NurApi.SESSION_SL, 5, NurApi.BANK_USER, 0xE0, 0, new byte[] { });
+            ocrssiMinFilter = Common.CreateInventoryExtendedSelect(NurApi.SESSION_SL, 0, NurApi.BANK_USER, 0xD0, 8, new byte[] { (byte)(0x20 | (ocrssiMin - 1)) });
+            ocrssiMaxFilter = Common.CreateInventoryExtendedSelect(NurApi.SESSION_SL, 2, NurApi.BANK_USER, 0xD0, 8, new byte[] { ocrssiMax });
+            TIDFilter = Common.CreateInventoryExtendedSelect(NurApi.SESSION_SL, 2, NurApi.BANK_TID, 0x00, 28, new byte[] { (byte)0xE2, (byte)0x82, (byte)0x40, (byte)0x30 });
             this.customExchange = temperatureEnable;
             this.filters = new NurApi.InventoryExFilter[] { ocrssiMinFilter, ocrssiMaxFilter, TIDFilter };
             // Inventory parameters (Query)
@@ -103,7 +101,7 @@ namespace NordicIdSamples
             this.config = config;
         }
 
-        NurApi.Tag[] readSensors()
+        NurApi.Tag[] ReadSensors()
         {
             NurApi.Tag[] results = { };
             try
@@ -135,7 +133,7 @@ namespace NordicIdSamples
             return results;
         }
 
-        void printSensorResults(NurApi.Tag tagRead, TemperatureCalibration cal)
+        void PrintSensorResults(NurApi.Tag tagRead, TemperatureCalibration cal)
         {
             // EPC
             Console.WriteLine("* EPC: " + tagRead.GetEpcString());

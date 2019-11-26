@@ -24,7 +24,7 @@ namespace NordicIdSamples
          * - S0: smaller tag populations
          * - S1: larger tag populations (along with filtering by OCRSSI)
          */
-        static String address = "COM17";
+        static String address = "COM1";
         static int power = 20;  // in dBm
         public static int[] antennas = { 1 };
         static int region = NurApi.REGIONID_FCC;
@@ -42,7 +42,7 @@ namespace NordicIdSamples
         public static int rounds = 10;
 
         // connect to reader
-        public static void connectReader(NurApi reader)
+        public static void ConnectReader(NurApi reader)
         {
             try
             {
@@ -66,7 +66,7 @@ namespace NordicIdSamples
         }
 
         // initialize reader
-        public static void initializeReader(NurApi reader)
+        public static void InitializeReader(NurApi reader)
         {
             try
             {
@@ -74,7 +74,7 @@ namespace NordicIdSamples
                 reader.InventoryReadCtl = false;
                 reader.Region = region;
                 reader.TxLevel = 30 - power;
-                configureAntennas(reader, antennas);
+                ConfigureAntennas(reader, antennas);
                 reader.SelectedAntenna = -1;
                 reader.LinkFrequency = blf;
                 reader.RxDecoding = encoding;
@@ -94,7 +94,7 @@ namespace NordicIdSamples
 
         }
 
-        public static void configureAntennas(NurApi reader, int[] antennas)
+        public static void ConfigureAntennas(NurApi reader, int[] antennas)
         {
             uint antennaMask = 0;
             foreach (int antenna in antennas)
@@ -114,7 +114,7 @@ namespace NordicIdSamples
         }
 
         // create an RFID Gen2 Select Command with custom parameters
-        public static NurApi.CustomExchangeParams createCustomExchangeSelect(int target, int action, int bank, int pointer, int length, byte[] mask)
+        public static NurApi.CustomExchangeParams CreateCustomExchangeSelect(int target, int action, int bank, int pointer, int length, byte[] mask)
         {
             NurApi.CustomExchangeParams select = new NurApi.CustomExchangeParams();
             try
@@ -156,7 +156,7 @@ namespace NordicIdSamples
             return select;
         }
 
-        public static NurApi.InventoryExFilter createInventoryExtendedSelect(int target, int action, int bank, int pointer, int length, byte[] mask)
+        public static NurApi.InventoryExFilter CreateInventoryExtendedSelect(int target, int action, int bank, int pointer, int length, byte[] mask)
         {
             NurApi.InventoryExFilter select = new NurApi.InventoryExFilter();
             select.target = (byte)target;
@@ -173,7 +173,7 @@ namespace NordicIdSamples
         public static short[] ReadMemBlockByEpc(NurApi reader, NurApi.Tag tag, int bank, int address, int length, int attempts)
         {
             // NurApi.InventoryExFilter resetFilter = createInventoryExtendedSelect(4, 4, NurApi.BANK_TID, 0x00, 16, new byte[] { 0xE2, 0x82 });
-            NurApi.InventoryExFilter epcFilter = createInventoryExtendedSelect(4, 0, NurApi.BANK_EPC, 0x20, tag.epc.Length * 8, tag.epc);
+            NurApi.InventoryExFilter epcFilter = CreateInventoryExtendedSelect(4, 0, NurApi.BANK_EPC, 0x20, tag.epc.Length * 8, tag.epc);
             NurApi.InventoryExFilter[] selects = new NurApi.InventoryExFilter[] { epcFilter };
 
             NurApi.InventoryExParams invEx = new NurApi.InventoryExParams();
@@ -193,7 +193,7 @@ namespace NordicIdSamples
             short[] values = null;
             try
             {
-                configureAntennas(reader, new int[] { tag.antennaId + 1 });
+                ConfigureAntennas(reader, new int[] { tag.antennaId + 1 });
                 reader.SetInventoryRead(ref config);
                 for (int i = 0; i < attempts; i++)
                 {
