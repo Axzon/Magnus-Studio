@@ -10,13 +10,19 @@ public class MagnusS2 {
      * Read Attempts: number of tries to read all nearby sensor tags
      *
      * On-Chip RSSI Filters: sensor tags with on-chip RSSI codes outside
-     * of these limits won't respond.
+     * of these limits won't respond
+     * 
+     * moistureMode: toggle between reading Moisture or On-Chip RSSI
+     * 
      */
     int readAttempts = 10;
     byte ocrssiMin = 3;
     byte ocrssiMax = 31;
-    static boolean moistureMode = true;
+    boolean moistureMode = true;
     
+    /**
+     * Shared class objects
+     */
     NurApi reader = new NurApi();
     NurIRConfig config = null;
     CustomExchangeParams params = null;
@@ -97,6 +103,7 @@ public class MagnusS2 {
                     results[i] = tagStorage.get(i);
                 }
             }
+            this.reader.setIRState(false);
         }
         catch (Exception e) {
             System.out.println("Error: " + e.getMessage());

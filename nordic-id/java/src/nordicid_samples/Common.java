@@ -18,7 +18,6 @@ public class Common{
      * Antennas: list of active antenna ports
      *
      * Region: select which regulatory region with which to adhere
-     * - to skip configuring, set to 'null'
      *
      * Session: specify which RFID Session Flag to use
      * - S0: smaller tag populations
@@ -74,9 +73,10 @@ public class Common{
             reader.setSetupSelectedAntenna(-1);
             reader.setSetupLinkFreq(blf);
             reader.setSetupRxDecoding(encoding);
+            reader.setSetupTxModulation(modulation);
             reader.setSetupInventorySession(session);
             reader.setSetupInventoryTarget(NurApi.INVTARGET_A);
-            reader.setSetupInventoryRounds(10);
+            reader.setSetupInventoryRounds(rounds);
             AutotuneSetup atSetup = new AutotuneSetup();
             atSetup.mode = AutotuneSetup.ATMODE_OFF;
             reader.setSetupAutotune(atSetup);
@@ -155,7 +155,8 @@ public class Common{
     }
 
     // read multiple registers from one tag singulated by its EPC
-    public static short[] readMemBlockByEpc(NurApi reader, NurTag tag, int bank, int address, int length, int attempts){
+    public static short[] readMemBlockByEpc(NurTag tag, int bank, int address, int length, int attempts){
+        NurApi reader = tag.getAPI();
         byte[] epcBytes = tag.getEpc();
         NurInventoryExtendedFilter epcFilter = createInventoryExtendedSelect(4, 0, NurApi.BANK_EPC, 0x20, epcBytes.length * 8, epcBytes);
         // Inventory parameters
@@ -188,16 +189,17 @@ public class Common{
                 reader.fetchTags();
                 NurTagStorage tagStorage = reader.getStorage();
                 NurTag[] results = new NurTag[tagStorage.size()];
-                for (int j = 0; j < results.length; j++) {
-                    results[j] = tagStorage.get(j);
+                for (int k = 0; k < results.length; k++) {
+                    results[k] = tagStorage.get(k);
                 }
                 for (NurTag foundTag: results) {
                     if (tag.getEpcString().equals(foundTag.getEpcString())) {
-                        byte[] dataBytes = foundTag.getIrData();
-                        values = convertByteArrayToShortArray(dataBytes);
+                        values = convertByteArrayToShortArray(foundTag.getIrData());
+                        break;
                     }
                 }
             }
+            reader.setIRState(false);
         }
         catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
@@ -211,20 +213,20 @@ public class Common{
     }
 
     // read multiple registers from one tag singulated by its EPC
-    public static short[] readMemBlockByEpc(NurApi reader, NurTag tag, int bank, int address, int length){
-        short[] values = readMemBlockByEpc(reader, tag, bank, address, length, 3);
+    public static short[] readMemBlockByEpc(NurTag tag, int bank, int address, int length){
+        short[] values = readMemBlockByEpc(tag, bank, address, length, 3);
         return values;
     }
 
     // read one register from one tag singulated by its EPC
-    public static short readMemByEpc(NurApi reader, NurTag tag, int bank, int address, int attempts){
-        short[] values = readMemBlockByEpc(reader, tag, bank, address, 1, attempts);
+    public static short readMemByEpc(NurTag tag, int bank, int address, int attempts){
+        short[] values = readMemBlockByEpc(tag, bank, address, 1, attempts);
         return values[0];
     }
 
     // read one register from one tag singulated by its EPC
-    public static short readMemByEpc(NurApi reader, NurTag tag, int bank, int address){
-        short value = readMemByEpc(reader, tag, bank, address, 3);
+    public static short readMemByEpc(NurTag tag, int bank, int address){
+        short value = readMemByEpc(tag, bank, address, 3);
         return value;
     }
 

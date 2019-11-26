@@ -1,5 +1,6 @@
 package nordicid_samples;
 
+import java.util.HashMap;
 import com.nordicid.nurapi.*;
 
 public class Xerxes {
@@ -10,20 +11,25 @@ public class Xerxes {
      * Read Attempts: number of tries to read all nearby sensor tags
      *
      * On-Chip RSSI Filters: sensor tags with on-chip RSSI codes outside
-     * of these limits won't respond.
+     * of these limits won't respond
      */
     int readAttempts = 10;
     byte ocrssiMin = 3;
     byte ocrssiMax = 31;
     
-    NurApi reader = new NurApi();
+    /**
+     * Shared class objects
+     */
+    NurApi reader = null;
     NurIRConfig config = null;
     CustomExchangeParams params = null;
     NurInventoryExtended invEx = null;
     NurInventoryExtendedFilter[] filters = null;
+    HashMap<String, TemperatureCalibration> lookupCalibration = new HashMap<>();
 
     public static void main(String[] args) {
         Xerxes x1 = new Xerxes();
+        x1.reader = new NurApi();
         Common.connectReader(x1.reader);
         Common.initializeReader(x1.reader);
         try {
@@ -32,10 +38,20 @@ public class Xerxes {
                 System.out.println("Read Attempt #" + i);
                 NurTag[] results = x1.readSensors();
                 if (results.length == 0) {
-                    System.out.println("No tag(s) found");
+                    System.out.println("No tag(s) found\n");
+                    continue;
                 }
-                else {
-                    x1.printSensorResults(results);
+                for (NurTag tag: results) {
+                    // retrieve calibration if unknown
+                    if (!x1.lookupCalibration.containsKey(tag.getEpcString())) {
+                        try {
+                            short[] calibrationWords = Common.readMemBlockByEpc(tag, NurApi.BANK_USER, 0x12, 4);
+                            TemperatureCalibration cal = new TemperatureCalibration(calibrationWords);
+                            x1.lookupCalibration.put(tag.getEpcString(), cal);
+                        }
+                        catch (RuntimeException e) { }
+                    }
+                    x1.printSensorResults(tag);
                 }
                 System.out.println();
             }
@@ -89,7 +105,6 @@ public class Xerxes {
             this.reader.customExchange(NurApi.BANK_USER, 0, 0, new byte[] { }, this.params);  // enable Temperature and Backport Sensors
             Thread.sleep(9);  // delay to provide CW
             NurRespInventory response = this.reader.inventoryExtended(this.invEx, this.filters, this.filters.length);
-//            NurRespInventory response = this.reader.inventory();
             this.reader.setExtendedCarrier(false); 
             if (response.numTagsFound != 0) {
                 this.reader.fetchTags();
@@ -99,6 +114,7 @@ public class Xerxes {
                     results[i] = tagStorage.get(i);
                 }
             }
+            this.reader.setIRState(false);
         }
         catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
@@ -112,91 +128,87 @@ public class Xerxes {
         return results;
     }
     
-    void printSensorResults(NurTag[] results) {
-        for (NurTag tag: results) {
-            System.out.println("* EPC: " + tag.getEpcString());
-            short[] dataWords = Common.convertByteArrayToShortArray(tag.getIrData());
-            if (dataWords.length == 0) {
-                continue;
-            }
-            int backport1Code = dataWords[0];
-            int backport2Code = dataWords[1];
-            int moistureCode = dataWords[2];
-            int ocrssiCode = dataWords[3];
-            int temperatureCode = dataWords[4];
-            
-            // On-Chip RSSI Sensor
-            System.out.println("  - On-Chip RSSI: " + ocrssiCode);
-            
-            // Moisture Sensor
-            String moistureStatus;
-            if (ocrssiCode < 5) {
-                moistureStatus = "power too low";
-            }
-            else if (ocrssiCode > 21) {
-                moistureStatus = "power too high";
-            }
-            else {
-                moistureStatus = moistureCode + " at " + tag.getFreq() + " kHz";
-            }
-            System.out.println("  - Moisture: " + moistureStatus);
-            
-            // Temperature Sensor
-            String temperatureStatus;
-            if (ocrssiCode < 5) {
-                temperatureStatus = "power too low";
-            }
-            else if (ocrssiCode > 18) {
-                temperatureStatus = "power too high";
-            }
-            else if (temperatureCode < 1500 || 3500 < temperatureCode){
-                temperatureStatus = "bad read";
-            }
-            else {
-                try {
-                    // read, decode and apply calibration one tag at a time
-                    short[] calibrationWords = Common.readMemBlockByEpc(this.reader, tag, NurApi.BANK_USER, 0x12, 4);
-                    TemperatureCalibration cal = new TemperatureCalibration(calibrationWords);
-                    if (cal.valid) {
-                        double temperatureValue = cal.slope * temperatureCode + cal.offset;
-                        temperatureStatus = String.format("%.02f degC", temperatureValue);
-                    }
-                    else {
-                        temperatureStatus = "invalid calibration";
-                    }
-                }
-                catch (RuntimeException e) {
-                    temperatureStatus = "failed to read calibration";
-                }
-            }
-            System.out.println("  - Temperature: " + temperatureStatus);
-
-            // Backport 1 Sensor
-            String backport1Status;
-            if (ocrssiCode < 5) {
-                backport1Status = "power too low";
-            }
-            else if (ocrssiCode > 18) {
-                backport1Status = "power too high";
-            }
-            else {
-                backport1Status = backport1Code + "";
-            }
-            System.out.println("  - Backport 1: " + backport1Status);
-
-            // Backport 2 Sensor
-            String backport2Status;
-            if (ocrssiCode < 5) {
-                backport2Status = "power too low";
-            }
-            else if (ocrssiCode > 18) {
-                backport2Status = "power too high";
-            }
-            else {
-                backport2Status = backport2Code + "";
-            }
-            System.out.println("  - Backport 1: " + backport2Status);
+    void printSensorResults(NurTag tag) {
+        System.out.println("* EPC: " + tag.getEpcString());
+        short[] dataWords = Common.convertByteArrayToShortArray(tag.getIrData());
+        if (dataWords.length == 0) {
+            return;
         }
+        int backport1Code = dataWords[0];
+        int backport2Code = dataWords[1];
+        int moistureCode = dataWords[2];
+        int ocrssiCode = dataWords[3];
+        int temperatureCode = dataWords[4];
+
+        // On-Chip RSSI Sensor
+        System.out.println("  - On-Chip RSSI: " + ocrssiCode);
+
+        // Moisture Sensor
+        String moistureStatus;
+        if (ocrssiCode < 5) {
+            moistureStatus = "power too low";
+        }
+        else if (ocrssiCode > 21) {
+            moistureStatus = "power too high";
+        }
+        else {
+            moistureStatus = moistureCode + " at " + tag.getFreq() + " kHz";
+        }
+        System.out.println("  - Moisture: " + moistureStatus);
+
+        // Temperature Sensor
+        
+        // Temperature Sensor
+        String temperatureStatus;
+        if (ocrssiCode < 5) {
+            temperatureStatus = "power too low";
+        }
+        else if (ocrssiCode > 18) {
+            temperatureStatus = "power too high";
+        }
+        else if (temperatureCode < 1000 || 4000 < temperatureCode){
+            temperatureStatus = "bad read";
+        }
+        else if (!this.lookupCalibration.containsKey(tag.getEpcString())) {
+            temperatureStatus = "failed to read calibration";
+        }
+        else {
+            TemperatureCalibration cal = this.lookupCalibration.get(tag.getEpcString());
+            if (cal.valid) {
+                double temperatureValue = cal.slope * temperatureCode + cal.offset;
+                temperatureStatus = String.format("%.02f degC", temperatureValue);
+            }
+            else {
+                temperatureStatus = "invalid calibration";
+            }
+        }
+        System.out.println("  - Temperature: " + temperatureStatus);
+
+        // Backport 1 Sensor
+        String backport1Status;
+        if (ocrssiCode < 5) {
+            backport1Status = "power too low";
+        }
+        else if (ocrssiCode > 18) {
+            backport1Status = "power too high";
+        }
+        else {
+            backport1Status = backport1Code + "";
+        }
+        System.out.println("  - Backport 1: " + backport1Status);
+
+        // Backport 2 Sensor
+        String backport2Status;
+        if (ocrssiCode < 5) {
+            backport2Status = "power too low";
+        }
+        else if (ocrssiCode > 18) {
+            backport2Status = "power too high";
+        }
+        else {
+            backport2Status = backport2Code + "";
+        }
+        System.out.println("  - Backport 1: " + backport2Status);
     }
     
     static class TemperatureCalibration {
