@@ -15,4 +15,4 @@ Version: 1.31.2.40
 
 ## Troubleshooting
 Install Universal Reader Assistance (URA) and verify the tag's EPC can be captured
-https://www.jadaktech.com/documentation/rfid/universal-reader-assistant-utility/
+https://www.jadaktech.com/products/thingmagic-rfid/thingmagic-universal-reader-assistant/
